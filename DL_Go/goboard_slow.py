@@ -97,7 +97,17 @@ class Board():
                     adjacent_opposite_color.append(neighbor_string) 
         
         new_string = GoString(player, [point], liberties)
-        ## Assemble the given GoString type instance with each of the adjacent GoString type
+        ## Assemble the given GoString type instance with each of the same color adjacent (unique) GoString type
+        for same_color_string in adjacent_same_color:
+            new_string = new_string.merged_with(same_color_string)
+        for new_string_point in new_string.stones:
+            self._grid[new_string_point] = new_string ## Build the new key-value relation, i.e. the coordinate of the new-established go-string and the pointer of this string. It's a multi-key to one value mapping. 
+        
+        ## Reduction of liberty of the adjacent opposite-color strings. (Remind uself of the difference of the adjacent stones and the adjacent strings)
+        for opposite_color_string in adjacent_opposite_color:
+            opposite_color_string.remove_liberty(point)
+            if opposite_color_string.num_liberties == 0:
+                self._remove_string(opposite_color_string)
 
 
 
