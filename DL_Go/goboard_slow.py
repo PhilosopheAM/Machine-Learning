@@ -125,3 +125,53 @@ class Board():
         if string is None:
             return None
         return string
+
+    def _remove_string(self, string):
+        for point in string.stones:
+            for neighbor in point.neighbors():
+                neighbor_string = self._grid.get(neighbor)
+                if neighbor_string is None:
+                    continue
+                if neighbor_string is not string:
+                    neighbor_string.add_liberty(point)
+                self._grid[point] = None
+
+
+'''
+Now we are going to implement a class named GameState. This class will allow us to know about the board position, the next player, the former(previous-move) game state and the recent move.
+'''
+class GameState():
+    def __init__(self,board,next_player,previous_gamestate,this_move):
+        self.board = board
+        self.next_player = next_player
+        self.previous_state = previous_gamestate
+        self.last_move = this_move
+
+    def apply_move(self,move):
+        if move.is_play:
+            board_after_move = copy.deepcopy(self.board)
+            board_after_move.place_stone(self.next_player,move.point)
+        else:
+            board_after_move = self.board
+        return GameState(board_after_move,self.next_player.other,self,move)
+
+    @classmethod
+    def new_game(cls, board_size):
+        assert isinstance(board_size,int), "Error: the board size should be int type or the board can not be created"
+        board = Board(board_size,board_size)
+        return GameState(board, Player.black,None, None)
+    
+    def is_over(self):
+
+        ## Surrender 
+        if self.last_move.is_resign:
+            return True
+        ## The first move of the game
+        if self.last_move is None:
+            return False
+        
+        former_second_move = self.previous_state.last_move
+        if former_second_move is None:
+            return False
+        return self.last_move.is_pass and former_second_move.is_pass
+
