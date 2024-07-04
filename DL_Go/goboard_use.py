@@ -1,5 +1,6 @@
 import copy
 from gotypes import Player, Point
+import zobrist_hashing_content
 
 '''
 We following American Go Association(AGA)'s notation. At each round, a player should conduct a 'move'. A 'move' can be the following three actions:
@@ -38,14 +39,16 @@ We call a group of connected stones of the same color a string of stones, or sim
 class GoString():
     def __init__(self, color, stones, liberties):
         self.color = color
-        self.stones = set(stones)
-        self.liberties = set(liberties)
+        self.stones = frozenset(stones)
+        self.liberties = frozenset(liberties)
 
-    def remove_liberty(self, point):
-        self.liberties.remove(point)
-
-    def add_liberty(self,point):
-        self.liberties.add(point)
+    def without_liberty(self, point):
+        new_liberties = self.liberties - set([point])
+        return GoString(self.color, self.stones, new_liberties)
+        
+    def with_liberty(self,point):
+        new_liberties = self.liberties | set([point])
+        return GoString(self.color, self.stones, new_liberties)
 
     def merged_with(self,go_string):
         assert go_string.color == self.color , "Stone Color Unmatch"
@@ -74,6 +77,7 @@ class Board():
         self.num_rows = num_rows
         self.num_cols = num_cols
         self._grid = {} # _grid is a dict, we use 'get' method latter to get GoString class instance stored inside.
+        self.__hash = zobrist_hashing_content.EMPTY_BOARD
 
     def place_stone(self, player, point):
         assert self.is_on_grid(point) # Make sure the coordinate given is usable
@@ -103,12 +107,15 @@ class Board():
         for new_string_point in new_string.stones:
             self._grid[new_string_point] = new_string # Build the new key-value relation, i.e. the coordinate of the new-established go-string and the pointer of this string. It's a multi-key to one value mapping. 
         
+        self.__hash ^= zobrist_hashing_content.HASH_CODE(point, player)
+
         # Reduction of liberty of the adjacent opposite-color strings. (Remind uself of the difference of the adjacent stones and the adjacent strings)
         for opposite_color_string in adjacent_opposite_color:
-            opposite_color_string.remove_liberty(point)
-            if opposite_color_string.num_liberties == 0:
+            replacement = opposite_color_string.without_liberty(point)
+            if replacement.num_liberties: # The boolean function identifies whether 'replacement.num_liberties' is 0. If not, return True.
+                self._replace_string(opposite_color_string.without_liberty(point))
+            else:
                 self._remove_string(opposite_color_string)
-
 
 
     def is_on_grid(self,point):
@@ -125,6 +132,10 @@ class Board():
         if string is None:
             return None
         return string
+    
+    def _replace_string(self, new_string):
+        for point in new_string.stones:
+            self._grid[point] = new_string
 
     def _remove_string(self, string):
         for point in string.stones:
@@ -133,8 +144,13 @@ class Board():
                 if neighbor_string is None:
                     continue
                 if neighbor_string is not string:
-                    neighbor_string.add_liberty(point)
-                self._grid[point] = None
+                    self._replace_string(neighbor_string.without_liberty(point))
+            self._grid[point] = None
+
+            self.__hash ^= zobrist_hashing_content.HASH_CODE[point, string.color]
+
+    def zobrist_hash(self):
+        return self.__hash
 
 
 '''
