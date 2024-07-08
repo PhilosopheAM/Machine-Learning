@@ -122,6 +122,17 @@ class Board():
         return (1 <= point.row <= self.num_rows) and (1 <= point.col <= self.num_cols)
 
     def get(self, point):
+        """
+        Check the stone color of the given point.
+
+        Args:
+            self: The instance of the current playing board.
+            point: The given Point instance need to be processed.
+
+        Returns:
+            None: If the given place has not been captured by a stone.
+            Player: A Player instance, expressed as a color.
+        """
         stone_string = self._grid.get(point)
         if stone_string is None:
             return None
@@ -162,6 +173,10 @@ class GameState():
         self.next_player = next_player
         self.previous_state = previous_gamestate
         self.last_move = this_move
+        if self.previous_state is None:
+            self.previous_states = frozenset
+        else:
+            self.previous_states = frozenset(previous_gamestate.previous_states | {(previous_gamestate.next_player , previous_gamestate.board.zobrist_hash())})
 
     def apply_move(self,move):
         if move.is_play:
@@ -202,20 +217,16 @@ class GameState():
     def situation(self):
         return (self.next_player, self.board)
     
-    # The following implementation of checking whether the moving operation violates 'ko' rule. It is obvious that it is too slow and costly. 
-    # There is another method to speed up the checking using hashing code. In chess engine, we use Zobrsit hashing. I will implement it later and make the present one depreciated.
+    # The better implementation of ko rule identification
     def does_move_violate_ko(self, player,move):
         if not move.is_play:
             return False
         next_board = copy.deepcopy(self.board)
-        next_board.place_stone(player, move.point)
-        next_situation = (player.other, next_board)
-        cheking_past_state = self.previous_state
-        while cheking_past_state is not None:
-            if cheking_past_state.situation == next_situation:
-                return True
-            cheking_past_state = cheking_past_state.previous_state
-        return False
+        next_board.place_stone(player,move.point)
+        next_situation = (player.other, next_board.zobrist._hash())
+        return next_situation in self.previous_states
+        # If 'next_situation' tuple already exists in 'self.previous_states' set, it will return 1 (yes), which indicates that the ko rule is violated.
+
 
     def is_valid_move(self, move):
         if self.is_over():
