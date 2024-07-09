@@ -1,6 +1,7 @@
 import copy
-from gotypes import Player, Point
-import zobrist_hashing_content
+from DL_Go.gotypes import Player, Point
+from DL_Go import zobrist_hashing_content
+
 
 '''
 We following American Go Association(AGA)'s notation. At each round, a player should conduct a 'move'. A 'move' can be the following three actions:
@@ -107,7 +108,7 @@ class Board():
         for new_string_point in new_string.stones:
             self._grid[new_string_point] = new_string # Build the new key-value relation, i.e. the coordinate of the new-established go-string and the pointer of this string. It's a multi-key to one value mapping. 
         
-        self.__hash ^= zobrist_hashing_content.HASH_CODE(point, player)
+        self.__hash ^= zobrist_hashing_content.HASH_CODE[point, player]
 
         # Reduction of liberty of the adjacent opposite-color strings. (Remind uself of the difference of the adjacent stones and the adjacent strings)
         for opposite_color_string in adjacent_opposite_color:
@@ -174,7 +175,7 @@ class GameState():
         self.previous_state = previous_gamestate
         self.last_move = this_move
         if self.previous_state is None:
-            self.previous_states = frozenset
+            self.previous_states = frozenset()
         else:
             self.previous_states = frozenset(previous_gamestate.previous_states | {(previous_gamestate.next_player , previous_gamestate.board.zobrist_hash())})
 
@@ -193,13 +194,12 @@ class GameState():
         return GameState(board, Player.black,None, None)
     
     def is_over(self):
-
-        # Surrender 
-        if self.last_move.is_resign:
-            return True
         # The first move of the game
         if self.last_move is None:
             return False
+        # Surrender 
+        if self.last_move.is_resign:
+            return True
         
         former_second_move = self.previous_state.last_move
         if former_second_move is None:
@@ -223,7 +223,7 @@ class GameState():
             return False
         next_board = copy.deepcopy(self.board)
         next_board.place_stone(player,move.point)
-        next_situation = (player.other, next_board.zobrist._hash())
+        next_situation = (player.other, next_board.zobrist_hash())
         return next_situation in self.previous_states
         # If 'next_situation' tuple already exists in 'self.previous_states' set, it will return 1 (yes), which indicates that the ko rule is violated.
 
