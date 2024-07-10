@@ -8,11 +8,12 @@ the letter I is omitted to avoid confusion with 1.
 
 import DL_Go.gotypes as gotypes
 
-COLS = 'ABCDEFGHJKLMNOPQRST' # No 'I' since it might get confused like '1'
+COLS = 'A B C D E F G H J K L M N O P Q R S T' # No 'I' since it might get confused like '1'
+COLS_NO_SEP = 'ABCDEFGHJKLMNOPQRST'
 STONE_TO_CHAR = {
-    None:'\u271B',
+    None:'\uFF0B',
     gotypes.Player.black : '\u26AB',
-    gotypes.Player.white:'\u2B24'
+    gotypes.Player.white:'\u26AA'
 }
 
 def print_move(player, move):
@@ -21,7 +22,7 @@ def print_move(player, move):
     elif move.is_resign:
         move_str = 'resigns'
     else:
-        move_str = '%s%d' %(COLS[move.point.col - 1], move.point.row)
+        move_str = '%s%d' %(COLS[2*(move.point.col - 1)], move.point.row)
     print('%s %s' %(player, move_str))
 
 def print_board(board):
@@ -32,5 +33,5 @@ def print_board(board):
             stone = board.get(gotypes.Point(row, col))
             per_line.append(STONE_TO_CHAR[stone])
         print('%s%d %s' %(bump, row, ''.join(per_line))) #''.join indicates that there is no seperator
-    print('    '+''.join(COLS[:board.num_cols]))
+    print('    '+''.join(COLS[:(2*board.num_cols)]))
 
