@@ -24,7 +24,7 @@ class Move():
     @classmethod
     def play(cls, point):
         return Move(point=point)
-    # Use @classmethod decorator to use the fuction 'play' in class level. The first parameter 'cls' stands for class
+    # Use @classmethod decorator to use the function 'play' in class level. The first parameter 'cls' stands for class
 
     @classmethod
     def pass_turn(cls):
@@ -77,7 +77,7 @@ class Board():
     def __init__(self, num_rows,num_cols):
         self.num_rows = num_rows
         self.num_cols = num_cols
-        self._grid = {} # _grid is a dict, we use 'get' method latter to get GoString class instance stored inside.
+        self._grid = {} # _grid is a dict, we use 'get' method later to get GoString class instance stored inside.
         self.__hash = zobrist_hashing_content.EMPTY_BOARD
 
     def place_stone(self, player, point):
@@ -239,4 +239,8 @@ class GameState():
                              (not self.is_move_self_capture(self.next_player,move)) and \
                              (not self.does_move_violate_ko(self.next_player, move))
         return play_move_checking
+
+    def get_valid_moves(self) -> [Point]:
+        valid_moves = set()
+
     

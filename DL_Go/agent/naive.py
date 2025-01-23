@@ -1,12 +1,12 @@
 import random
-from DL_Go.agent.base import Agent
-from DL_Go.agent.helpers import is_point_an_eye
+from base import Agent
+from helpers import is_point_an_eye
 from DL_Go.goboard_use import Move
 from DL_Go.gotypes import Point
 
 class RandomBot(Agent):
     def select_move(self, game_state) -> Move:
-        '''Random choice, valid moves. Very naive bot plays like a child.'''
+        # Random choice, valid moves. Very naive bot plays like a child.
         candidates = []
         for rv in range(1, game_state.board.num_rows + 1):
             for cv in range(1, game_state.board.num_cols + 1):

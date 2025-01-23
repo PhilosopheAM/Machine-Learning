@@ -10,7 +10,7 @@ We following American Go Association(AGA)'s notation. At each round, a player sh
 Normally, most of the cases in a progressing game should be the third one, 'Play'. 
 '''
 
-class Move():
+class Move:
     def __init__(self, point = None, is_pass = False, is_resign = False):
         assert (point is not None) ^ (is_pass) ^ (is_resign)
         # The assertion makes sure each instance has only one target moving among 'play(allocate a point)', 'pass' or 'resign'. Or it will give out an error.
@@ -22,7 +22,7 @@ class Move():
     @classmethod
     def play(cls, point):
         return Move(point=point)
-    # Use @classmethod decorator to use the fuction 'play' in class level. The first parameter 'cls' stands for class
+    # Use @classmethod decorator to use the function 'play' in class level. The first parameter 'cls' stands for class
 
     @classmethod
     def pass_turn(cls):
@@ -35,7 +35,7 @@ class Move():
 '''
 We call a group of connected stones of the same color a string of stones, or simply a string
 '''
-class GoString():
+class GoString:
     def __init__(self, color, stones, liberties):
         self.color = color
         self.stones = set(stones)
@@ -50,7 +50,7 @@ class GoString():
     def merged_with(self,go_string):
         assert go_string.color == self.color , "Stone Color Unmatch"
 
-        # The following operations in this fuction are based on the property of the datatype Set
+        # The following operations in this function are based on the property of the datatype Set
         merged_stones_set = self.stones | go_string.stones
         return GoString(
             self.color,
@@ -69,7 +69,7 @@ class GoString():
                 self.liberties == other.liberties        
                 )
     
-class Board():
+class Board:
     def __init__(self, num_rows,num_cols):
         self.num_rows = num_rows
         self.num_cols = num_cols
@@ -140,7 +140,7 @@ class Board():
 '''
 Now we are going to implement a class named GameState. This class will allow us to know about the board position, the next player, the former(previous-move) game state and the recent move.
 '''
-class GameState():
+class GameState:
     def __init__(self,board,next_player,previous_gamestate,this_move):
         self.board = board
         self.next_player = next_player
@@ -194,11 +194,11 @@ class GameState():
         next_board = copy.deepcopy(self.board)
         next_board.place_stone(player, move.point)
         next_situation = (player.other, next_board)
-        cheking_past_state = self.previous_state
-        while cheking_past_state is not None:
-            if cheking_past_state.situation == next_situation:
+        checking_past_state = self.previous_state
+        while checking_past_state is not None:
+            if checking_past_state.situation == next_situation:
                 return True
-            cheking_past_state = cheking_past_state.previous_state
+            checking_past_state = checking_past_state.previous_state
         return False
 
     def is_valid_move(self, move):
