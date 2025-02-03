@@ -47,22 +47,21 @@ class GoString():
         new_liberties = self.liberties - set([point])
         return GoString(self.color, self.stones, new_liberties)
         
-    def with_liberty(self,point):
+    def with_liberty(self, point):
         new_liberties = self.liberties | set([point])
         return GoString(self.color, self.stones, new_liberties)
 
-    def merged_with(self,go_string):
+    def merged_with(self, go_string):
         assert go_string.color == self.color , "Stone Color Unmatch"
 
-        # The following operations in this fuction are based on the property of the datatype Set
+        # The following operations in this function are based on the property of the datatype Set
         merged_stones_set = self.stones | go_string.stones
         return GoString(
             self.color,
             merged_stones_set,
-            (self.liberties | go_string.liberties) - merged_stones_set # Here do union first, then do difference.  
+            (self.liberties | go_string.liberties) - merged_stones_set  # Here do union first, then do difference.
         )
-    
-    @property
+
     def num_liberties(self):
         return len(self.liberties)
     
@@ -127,7 +126,6 @@ class Board():
         Check the stone color of the given point.
 
         Args:
-            self: The instance of the current playing board.
             point: The given Point instance need to be processed.
 
         Returns:
@@ -137,12 +135,10 @@ class Board():
         stone_string = self._grid.get(point)
         if stone_string is None:
             return None
-        return stone_string.color # 'color' is Player class
+        return stone_string.color  # 'color' is Player class
     
-    def get_go_string(self,point):
+    def get_go_string(self, point):
         string = self._grid.get(point)
-        if string is None:
-            return None
         return string
     
     def _replace_string(self, new_string):
@@ -234,13 +230,39 @@ class GameState():
         if move.is_pass or move.is_resign:
             return True
         
-        # When checking a 'Play' move, you need to make sure that: 1) the point given is legal 2) no self-capture 3) no violating ko rule
+        # When checking a 'Play' move, you need to make sure that:
+        # 1) the point given is legal
+        # 2) no self-capture
+        # 3) no violating ko rule
         play_move_checking = (self.board.get(move.point) is None) and \
                              (not self.is_move_self_capture(self.next_player,move)) and \
                              (not self.does_move_violate_ko(self.next_player, move))
         return play_move_checking
 
-    def get_valid_moves(self) -> [Point]:
-        valid_moves = set()
+    def get_valid_moves(self):
+        valid_moves_list = []
+        for column in range(1, self.board.num_rows + 1):
+            for row in range(1, self.board.num_columns + 1):
+                temp_move = Move.play(Point(row, column))
+                if self.is_valid_move(temp_move):
+                    valid_moves_list.append(temp_move)
+        
+        if len(valid_moves_list) == 0:
+            return None
+        else:
+            return valid_moves_list
 
-    
+    def check_board_accurate_status(self) -> tuple:
+        """
+        This method implements flood fill algorithm to calculate the accurate territories that two players separately own.
+        Note that this method does not implement seki(both-alive) condition.
+
+        Returns:
+            tuple[int, int, int]: 包含三个整数的元组，分别表示：
+                - 黑方控制的领地大小
+                - 白方控制的领地大小
+                - 中立区域的大小
+        """
+
+        # First step is to remove the dead GoString in the board
+
