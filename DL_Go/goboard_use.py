@@ -251,18 +251,3 @@ class GameState():
             return None
         else:
             return valid_moves_list
-
-    def check_board_accurate_status(self) -> tuple:
-        """
-        This method implements flood fill algorithm to calculate the accurate territories that two players separately own.
-        Note that this method does not implement seki(both-alive) condition.
-
-        Returns:
-            tuple[int, int, int]: 包含三个整数的元组，分别表示：
-                - 黑方控制的领地大小
-                - 白方控制的领地大小
-                - 中立区域的大小
-        """
-
-        # First step is to remove the dead GoString in the board
-
