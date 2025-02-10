@@ -1,7 +1,7 @@
 import copy
 from DL_Go.gotypes import Player, Point
 from DL_Go import zobrist_hashing_content
-
+from typing import Optional
 
 '''
 We following American Go Association(AGA)'s notation. At each round, a player should conduct a 'move'. A 'move' can be the following three actions:
@@ -121,7 +121,7 @@ class Board():
     def is_on_grid(self,point):
         return (1 <= point.row <= self.num_rows) and (1 <= point.col <= self.num_cols)
 
-    def get(self, point):
+    def get(self, point)-> Optional[Player]: # Use typing.Optional to check the return value. It should be a Player object, but None is ok.
         """
         Check the stone color of the given point.
 
@@ -135,7 +135,8 @@ class Board():
         stone_string = self._grid.get(point)
         if stone_string is None:
             return None
-        return stone_string.color  # 'color' is Player class
+        else:
+            return stone_string.color  # 'color' is Player class
     
     def get_go_string(self, point):
         string = self._grid.get(point)
