@@ -79,6 +79,12 @@ class Board():
         self._grid = {} # _grid is a dict, we use 'get' method later to get GoString class instance stored inside.
         self.__hash = zobrist_hashing_content.EMPTY_BOARD
 
+    def size(self):
+        '''
+        :return: A list with two integers representing the size of the board, i.e. the row and column.
+        '''
+        return [self.num_rows, self.num_cols]
+
     def place_stone(self, player, point):
         assert self.is_on_grid(point) # Make sure the coordinate given is usable
         assert self._grid.get(point) is None # Make sure there is no stone in the place of the given coordinate of point

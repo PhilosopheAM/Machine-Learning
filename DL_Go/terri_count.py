@@ -5,6 +5,11 @@ from typing import List, Tuple, Set
 class SimpleTerri:
     @staticmethod
     def go_stones_number(board:Board) -> List[3]:
+        """
+        The most simple and silly way to determine the situation. Return the total number of black stones, white stones and neutral land.
+        :param board: The parameter is a board object. It is the current go board that needs to be checked.
+        :return: Always returns a list[3] of int. The first and second indicates how many black and white stones still stay on the board. The third int value is how many neutral land remains.
+        """
         board_column = board.num_cols
         board_row = board.num_rows
         black_stones_number, white_stones_number, neutral_number = 0, 0, 0
@@ -27,6 +32,7 @@ class ComplexTerri:
         :param board: The parameter is a board object. It is the current go board that needs to be checked.
         :return: Always returns a list[3] of int. The first and second indicates how many territories black and white player has respectively captured. The third int value is how many neutral land remains.
         """
+        assert isinstance(board, Board), "The parameter must be a GoBoard object."
         board_set = ComplexTerri.accurate_terri_set(board)
         black_count = len(board_set[0])
         white_count = len(board_set[1])
@@ -36,7 +42,10 @@ class ComplexTerri:
     @staticmethod
     def accurate_terri_set(board:Board) -> List[Set[Point]]:
         """
+        Use flood-fill algorithm to identify black and white land.
         Return three sets of points. The first set includes the points captured by black players. The second set includes the points captured by white players. The last set includes the points remained neutral.
         :param board: The parameter is a board object. It is the current go board that needs to be checked.
         :return: Always returns a list containing three sets. Sets contain the points captured by black players, white players, and remained neutral respectively.
         """
+        assert isinstance(board, Board), "The parameter must be a GoBoard object."
+        
