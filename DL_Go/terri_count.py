@@ -130,5 +130,27 @@ class ComplexTerri:
         return region, border
 
     @staticmethod
-    def __influence_weighting_calculator(board:Board):
-        pass
+    def __influence_weighting_calculator(point:Point, board:Board, neighbor_range:int = 5, decay_constant:float = 1) -> tuple[float, float]:
+        """
+        Use recursive method to get nearby points. With Euclidean distance set as exponential parameter, we design an exponential decay model to sum up the total effect comes from nearby points on a point.
+        :param point: The point to be checked.
+        :param board: The parameter is a board object. It is the current go board that needs to be checked.
+        :param neighbor_range: The range of points involve in affecting the score of the point. Defaults to 5.
+        :param decay_constant: The decay constant used in normal exponential decay formula. Defaults to 1.
+        :return: Always returns a tuple including two floats. The first one is how much influence black stones give to this point. The second is how much influence white stones give to this point.
+        """
+        assert isinstance(point, Point) and isinstance(board, Board) and isinstance(neighbor_range, int) and neighbor_range > 0, "Parameter invalid!"
+        assert neighbor_range + 1 >= min(board.size()), "Board is too small for a too big neighbor range."
+        recursion_steps = neighbor_range
+        decay_constant = decay_constant
+        black_score = 0
+        white_score = 0
+        queue = deque[point]
+
+        while queue:
+
+
+    @staticmethod
+    def __recursively_neighbor(point:Point, remain_recursion_steps: int) -> set[Point]:
+        if remain_recursion_steps > 0:
+            return ComplexTerri.__recursively_neighbor(point, remain_recursion_steps)
