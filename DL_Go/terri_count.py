@@ -130,24 +130,34 @@ class ComplexTerri:
         return region, border
 
     @staticmethod
-    def __influence_weighting_calculator(point:Point, board:Board, neighbor_range:int = 5, decay_constant:float = 1) -> tuple[float, float]:
+    def __influence_weighting_calculator(target_point:Point, board:Board, influence_distance:int = 5, decay_constant:float = 1) -> tuple[float, float]:
         """
         Use recursive method to get nearby points. With Euclidean distance set as exponential parameter, we design an exponential decay model to sum up the total effect comes from nearby points on a point.
-        :param point: The point to be checked.
+        :param target_point: The point to be checked.
         :param board: The parameter is a board object. It is the current go board that needs to be checked.
-        :param neighbor_range: The range of points involve in affecting the score of the point. Defaults to 5.
+        :param influence_distance: The range of points involve in affecting the score of the point. Defaults to 5.
         :param decay_constant: The decay constant used in normal exponential decay formula. Defaults to 1.
         :return: Always returns a tuple including two floats. The first one is how much influence black stones give to this point. The second is how much influence white stones give to this point.
         """
-        assert isinstance(point, Point) and isinstance(board, Board) and isinstance(neighbor_range, int) and neighbor_range > 0, "Parameter invalid!"
-        assert neighbor_range + 1 >= min(board.size()), "Board is too small for a too big neighbor range."
-        recursion_steps = neighbor_range
+        assert isinstance(target_point, Point) and isinstance(board, Board) and isinstance(influence_distance, int) and influence_distance > 0, "Parameter invalid!"
+        assert influence_distance + 1 >= min(board.size()), "Board is too small for a too big neighbor range."
+        recursion_steps = influence_distance
         decay_constant = decay_constant
         black_score = 0
         white_score = 0
-        queue = deque[point]
+        queue = deque[target_point]
+        visited = set() # Points that have been checked
+        valid_points = set() # Points involve in calculating the score. Points whose distance from the target point is less than influence distance.
 
         while queue:
+            current = queue.popleft()
+            current_coordinate = current.get()
+
+
+            neighbors = current.neighbor_with_bound_constraint(board.size())
+            for candidate_point in neighbors:
+
+
 
 
     @staticmethod

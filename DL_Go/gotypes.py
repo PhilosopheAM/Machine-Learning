@@ -39,3 +39,9 @@ class Point(namedtuple('Point',['row','col'])):
             if 1 <= nr <= constraint[0] and 1 <= nc <= constraint[1]:
                 neighbors.append(Point(nr, nc))
         return neighbors
+
+    def get(self) -> Tuple[int, int]:
+        """
+        Return row and column coordinates of the point.
+        """
+        return self.row, self.col
