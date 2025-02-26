@@ -1,8 +1,10 @@
+from distributed.utils_test import throws
 from pydantic.json import deque
 
 from goboard_use import Board
 from gotypes import *
 from typing import List, Tuple, Set
+from math import sqrt
 
 class SimpleTerri:
     @staticmethod
@@ -99,6 +101,21 @@ class ComplexTerri:
         return points_terri_result
 
     @staticmethod
+    def estimated_terri_set(board:Board) -> List[set[Point]]:
+        """
+        Return the estimated value of land captured and neutral land remains. It does not include liberty check, i.e. you should make sure GoString is always alive when checking land captured.
+        :param board: The parameter is a board object. It is the current go board that needs to be checked.
+        :return: Always returns a list containing three sets. Sets contain the points captured(or seems to have a great influence on) by black players, white players, and remained neutral respectively.
+        """
+        accurate_set_list = ComplexTerri.accurate_terri_number(board)
+        black_set = accurate_set_list[0]  # Include territory and go
+        white_set = accurate_set_list[1]  # Include territory and go
+        neutral_set = accurate_set_list[2] # From neutral set, estimate potential territory by influence model
+        #TODO: Estimating logic
+
+
+
+    @staticmethod
     def __flood_fill(start: Point, board:Board) -> tuple[set[Point], set[Point]]:
         """Implementation of flood-fill algorithm. Check the region connected to the start point and the border of the region when the start point is neutral.
             Args:
@@ -130,37 +147,45 @@ class ComplexTerri:
         return region, border
 
     @staticmethod
-    def __influence_weighting_calculator(target_point:Point, board:Board, influence_distance:int = 5, decay_constant:float = 1) -> tuple[float, float]:
+    def __influence_weighting_calculator(target_point:Point, board:Board, influence_distance:int = 5, decay_constant:float = 0.6, multiply_constant:float = 1, default_score:float = 0.2) -> tuple[float, float]:
         """
         Use recursive method to get nearby points. With Euclidean distance set as exponential parameter, we design an exponential decay model to sum up the total effect comes from nearby points on a point.
         :param target_point: The point to be checked.
         :param board: The parameter is a board object. It is the current go board that needs to be checked.
         :param influence_distance: The range of points involve in affecting the score of the point. Defaults to 5.
         :param decay_constant: The decay constant used in normal exponential decay formula. Defaults to 1.
+        :param multiply_constant: The constant multiplier used in normal exponential decay formula. Defaults to 1.
+        :param default_score: The default score used to avoid 0 as the final score, may cause some problems. Defaults to 0.2.
         :return: Always returns a tuple including two floats. The first one is how much influence black stones give to this point. The second is how much influence white stones give to this point.
         """
         assert isinstance(target_point, Point) and isinstance(board, Board) and isinstance(influence_distance, int) and influence_distance > 0, "Parameter invalid!"
         assert influence_distance + 1 >= min(board.size()), "Board is too small for a too big neighbor range."
         recursion_steps = influence_distance
         decay_constant = decay_constant
-        black_score = 0
-        white_score = 0
-        queue = deque[target_point]
+        black_score = default_score
+        white_score = default_score # default score is 0.1
+        queue = deque[Point]
+        queue.append(target_point)
         visited = set() # Points that have been checked
-        valid_points = set() # Points involve in calculating the score. Points whose distance from the target point is less than influence distance.
+        # valid_points = set() # Points involve in calculating the score. Points whose distance from the target point is less than influence distance.
 
         while queue:
             current = queue.popleft()
             current_coordinate = current.get()
-
-
-            neighbors = current.neighbor_with_bound_constraint(board.size())
-            for candidate_point in neighbors:
-
-
-
-
-    @staticmethod
-    def __recursively_neighbor(point:Point, remain_recursion_steps: int) -> set[Point]:
-        if remain_recursion_steps > 0:
-            return ComplexTerri.__recursively_neighbor(point, remain_recursion_steps)
+            neighbors = set(current.neighbor_with_bound_constraint(board.size())) # Transform into set type to speed up
+            for candidate_point in neighbors - visited: # Use the attribute of Set to speed up searching. Find points in candidate_point but not in visited.
+                visited.add(candidate_point) # append current selected point to visited set
+                neighbor_coordinate = candidate_point.get()
+                distance_squared = (neighbor_coordinate[0] - current_coordinate[0])**2 + (neighbor_coordinate[1] - current_coordinate[1])**2
+                if distance_squared <= influence_distance**2: # candidate point is valid, should take into consideration
+                    distance = sqrt(distance_squared)
+                    score_influence = multiply_constant * (decay_constant**distance) # exponential decay sum up
+                    if board.get(candidate_point) is Player.black:
+                        black_score += score_influence
+                    elif board.get(candidate_point) is Player.white:
+                        white_score += score_influence
+                    else:
+                        raise TypeError("The candidate point is not black or white.")
+                else:
+                    pass
+        return black_score, white_score

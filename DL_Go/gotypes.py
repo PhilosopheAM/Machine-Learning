@@ -25,7 +25,7 @@ class Point(namedtuple('Point',['row','col'])):
             Point(self.row, self.col + 1),
         ]
 
-    def neighbor_with_bound_constraint(self, constraint:List[int, int])-> List:
+    def neighbor_with_bound_constraint(self, constraint:Tuple[int, int])-> List:
         """
                 Returns a list of the neighboring points, with boarder detection.
                 :param constraint: Must be a list of two ints, (row, col).

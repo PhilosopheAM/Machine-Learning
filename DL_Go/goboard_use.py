@@ -80,9 +80,9 @@ class Board():
         self.__hash = zobrist_hashing_content.EMPTY_BOARD
 
     def size(self):
-        '''
+        """
         :return: A list with two integers representing the size of the board, i.e. the row and column.
-        '''
+        """
         return [self.num_rows, self.num_cols]
 
     def place_stone(self, player, point):
