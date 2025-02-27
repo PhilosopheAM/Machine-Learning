@@ -1,6 +1,6 @@
 import random
-from base import Agent
-from helpers import is_point_an_eye
+from DL_Go.agent.base import Agent
+from DL_Go.agent.helpers import is_point_an_eye
 from DL_Go.goboard_use import Move
 from DL_Go.gotypes import Point
 

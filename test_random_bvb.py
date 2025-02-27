@@ -1,7 +1,7 @@
 from DL_Go.agent import naive
 from DL_Go import goboard_use
 from DL_Go import gotypes
-from DL_Go.utils import print_board, print_move
+from DL_Go.utils import print_board, print_move, print_accurate_condition
 import time
 
 def main():
@@ -14,7 +14,7 @@ def main():
     }
 
     while not game.is_over():
-        time.sleep(1)
+        #time.sleep(1)
 
         """
         这行代码 `print(chr(27) + "[2J")` 是用来清除终端屏幕的。让我们分解一下这行代码的组成部分 :
@@ -32,6 +32,7 @@ def main():
         bot_move = bots[game.next_player].select_move(game)
         print_move(game.next_player, bot_move)
         game = game.apply_move(bot_move)
+        # print_accurate_condition(game.board)
 
 if __name__ == '__main__':
     main()

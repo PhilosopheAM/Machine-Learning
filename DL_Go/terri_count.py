@@ -1,14 +1,13 @@
-from distributed.utils_test import throws
-from pydantic.json import deque
+from collections import deque
 
-from goboard_use import Board
-from gotypes import *
+from DL_Go.goboard_use import Board
+from DL_Go.gotypes import *
 from typing import List, Tuple, Set
 from math import sqrt
 
 class SimpleTerri:
     @staticmethod
-    def go_stones_number(board:Board) -> List[3]:
+    def go_stones_number(board:Board) -> List[int]:
         """
         The most simple and silly way to determine the situation. Return the total number of black stones, white stones and neutral land.
         :param board: The parameter is a board object. It is the current go board that needs to be checked.
@@ -30,7 +29,7 @@ class SimpleTerri:
 
 class ComplexTerri:
     @staticmethod
-    def accurate_terri_number(board:Board) -> List[3]:
+    def accurate_terri_number(board:Board) -> List[int]:
         """
         Return the accurate value of land captured and neutral land remains without any estimation. It does not include liberty check, i.e. you should make sure GoString is always alive when checking land captured.
         :param board: The parameter is a board object. It is the current go board that needs to be checked.
@@ -81,14 +80,15 @@ class ComplexTerri:
 
                     # If the border is in the same color, we update the black or white set.
                     if border_in_one_color:
-                        color_of_border = board.get(border[0])
+                        iter_obj = iter(border) # Transform border into an interable object
+                        color_of_border = board.get(next(iter_obj)) # next() in set will return an element but not delete it, compared to pop()
                         assert color_of_border == Player.black or color_of_border == Player.white, "Here's a problem with border color." # Theoretically, we won't use it at any time. But...
                         if color_of_border == Player.black:
-                            black_set.add(region)
-                            black_set.add(border)
+                            black_set.update(region)
+                            black_set.update(border)
                         else: # color should be white
-                            white_set.add(region)
-                            white_set.add(border)
+                            white_set.update(region)
+                            white_set.update(border)
                     else: # Region does not belong to any player
                         neutral_set.update(region)
 
@@ -99,21 +99,43 @@ class ComplexTerri:
         # Return a list including three set[Point]
         points_terri_result: List[set[Point]] = [black_set, white_set, neutral_set]
         return points_terri_result
+    
+    @staticmethod
+    def estimated_terri_number(board:Board) -> List[Set]:
+        """
+        Return the accurate value of land captured and neutral land remains with estimation. It does not include liberty check, i.e. you should make sure GoString is always alive when checking land captured.
+        :param board: The parameter is a board object. It is the current go board that needs to be checked.
+        :return: Always returns a list[3] of int. The first and second indicates how many territories black and white player has respectively captured. The third int value is how many neutral land remains.
+        """
+        black_set, white_set, neutral_set = ComplexTerri.estimated_terri_set(board)
+        return [len(black_set), len(white_set), len(neutral_set)]
 
     @staticmethod
-    def estimated_terri_set(board:Board) -> List[set[Point]]:
+    def estimated_terri_set(board:Board) -> Tuple[set[Point]]:
         """
         Return the estimated value of land captured and neutral land remains. It does not include liberty check, i.e. you should make sure GoString is always alive when checking land captured.
         :param board: The parameter is a board object. It is the current go board that needs to be checked.
         :return: Always returns a list containing three sets. Sets contain the points captured(or seems to have a great influence on) by black players, white players, and remained neutral respectively.
         """
-        accurate_set_list = ComplexTerri.accurate_terri_number(board)
+        accurate_set_list = ComplexTerri.accurate_terri_set(board)
         black_set = accurate_set_list[0]  # Include territory and go
         white_set = accurate_set_list[1]  # Include territory and go
         neutral_set = accurate_set_list[2] # From neutral set, estimate potential territory by influence model
-        #TODO: Estimating logic
+        
+        # Check if a candidate point satisfies the condition.
+        for candidate_point in neutral_set:
+            current_score = ComplexTerri.__influence_weighting_calculator(candidate_point, board)
+            both_score_total = current_score[0] + current_score[1]
+            if current_score[0]/both_score_total > 0.8:
+                black_set.add(candidate_point)
+                neutral_set.discard(candidate_point)
+            elif current_score[1]/both_score_total > 0.8:
+                white_set.add(candidate_point)
+                neutral_set.discard(candidate_point)
+            else:
+                pass
 
-
+        return black_set, white_set, neutral_set
 
     @staticmethod
     def __flood_fill(start: Point, board:Board) -> tuple[set[Point], set[Point]]:
@@ -123,7 +145,7 @@ class ComplexTerri:
             Returns:
                 (region points, border points)
         """
-        queue = deque[start] # Build a queue list to maximize the data access efficiency at endpoints
+        queue = deque([start]) # Build a queue list to maximize the data access efficiency at endpoints
         visited = set()
         region = set()
         border = set()
@@ -136,7 +158,7 @@ class ComplexTerri:
 
             if board.get(current) is None: # If the current point is empty
                 region.add(current)
-                for neighbor in current.neighbor_with_bound_constraint(board.size()):
+                for neighbor in current.neighbor_with_bound_constraint(constraint=board.size()):
                     if neighbor in visited:
                         continue
                     else:
@@ -164,7 +186,7 @@ class ComplexTerri:
         decay_constant = decay_constant
         black_score = default_score
         white_score = default_score # default score is 0.1
-        queue = deque[Point]
+        queue = deque([Point])
         queue.append(target_point)
         visited = set() # Points that have been checked
         # valid_points = set() # Points involve in calculating the score. Points whose distance from the target point is less than influence distance.
@@ -172,7 +194,7 @@ class ComplexTerri:
         while queue:
             current = queue.popleft()
             current_coordinate = current.get()
-            neighbors = set(current.neighbor_with_bound_constraint(board.size())) # Transform into set type to speed up
+            neighbors = set(current.neighbor_with_bound_constraint(constraint=board.size())) # Transform into set type to speed up
             for candidate_point in neighbors - visited: # Use the attribute of Set to speed up searching. Find points in candidate_point but not in visited.
                 visited.add(candidate_point) # append current selected point to visited set
                 neighbor_coordinate = candidate_point.get()

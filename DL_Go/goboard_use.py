@@ -2,6 +2,7 @@ import copy
 from DL_Go.gotypes import Player, Point
 from DL_Go import zobrist_hashing_content
 from typing import Optional
+from typing import List, Tuple
 
 '''
 We following American Go Association(AGA)'s notation. At each round, a player should conduct a 'move'. A 'move' can be the following three actions:
@@ -79,7 +80,7 @@ class Board():
         self._grid = {} # _grid is a dict, we use 'get' method later to get GoString class instance stored inside.
         self.__hash = zobrist_hashing_content.EMPTY_BOARD
 
-    def size(self):
+    def size(self) -> List[int]:
         """
         :return: A list with two integers representing the size of the board, i.e. the row and column.
         """

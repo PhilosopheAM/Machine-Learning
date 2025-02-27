@@ -10,7 +10,7 @@ class Player(Enum):
     def other(self):
         return Player.black if self == Player.white else Player.white
     
-class Point(namedtuple('Point',['row','col'])):
+class Point(namedtuple(typename='Point', field_names=['row', 'col'], rename=False)):
     ## A namedtuple lets you access the coordinates as point.row and point.col instead
     ## of point[0] and point[1], which makes for much better readability.
     def neighbors(self):
@@ -24,8 +24,7 @@ class Point(namedtuple('Point',['row','col'])):
             Point(self.row, self.col - 1),
             Point(self.row, self.col + 1),
         ]
-
-    def neighbor_with_bound_constraint(self, constraint:Tuple[int, int])-> List:
+    def neighbor_with_bound_constraint(self, constraint:List[int])-> List:
         """
                 Returns a list of the neighboring points, with boarder detection.
                 :param constraint: Must be a list of two ints, (row, col).
@@ -45,3 +44,13 @@ class Point(namedtuple('Point',['row','col'])):
         Return row and column coordinates of the point.
         """
         return self.row, self.col
+    
+    ''' For test
+if __name__ == '__main__':
+    test = Point(1,1)
+    print(test._fields)
+    print("\n")
+    print(test.row)
+    print(type(test.row))
+    print(test.col)
+    '''

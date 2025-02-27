@@ -7,6 +7,7 @@ the letter I is omitted to avoid confusion with 1.
 """
 
 import DL_Go.gotypes as gotypes
+from DL_Go.terri_count import *
 
 COLS = 'A B C D E F G H J K L M N O P Q R S T' # No 'I' since it might get confused like '1'
 COLS_NO_SEP = 'ABCDEFGHJKLMNOPQRST'
@@ -35,3 +36,6 @@ def print_board(board):
         print('%s%d %s' %(bump, row, ''.join(per_line))) #''.join indicates that there is no seperator
     print('    '+''.join(COLS[:(2*board.num_cols)]))
 
+def print_accurate_condition(board):
+    black_num , white_num, neutral_num = ComplexTerri.accurate_terri_number(board)
+    print("Up to now,\nblack player gains %d territory\nwhite player gains %d territory", black_num, white_num)
