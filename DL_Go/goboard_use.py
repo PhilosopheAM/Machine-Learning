@@ -86,7 +86,7 @@ class Board():
         """
         return [self.num_rows, self.num_cols]
 
-    def place_stone(self, player, point):
+    def place_stone(self, player:Player, point:Point):
         assert self.is_on_grid(point) # Make sure the coordinate given is usable
         assert self._grid.get(point) is None # Make sure there is no stone in the place of the given coordinate of point
         adjacent_same_color = []
@@ -98,7 +98,7 @@ class Board():
             
             # Only those neighbors with reachable coordinates will go into following steps
             neighbor_string = self._grid.get(neighbor_stone)
-            if neighbor_string is None:
+            if neighbor_string is None: # Empty, not have been captured
                 liberties.append(neighbor_stone)
             elif neighbor_string.color == player:
                 if neighbor_string not in adjacent_same_color:
@@ -120,7 +120,7 @@ class Board():
         for opposite_color_string in adjacent_opposite_color:
             replacement = opposite_color_string.without_liberty(point)
             if replacement.num_liberties: # The boolean function identifies whether 'replacement.num_liberties' is 0. If not, return True.
-                self._replace_string(opposite_color_string.without_liberty(point))
+                self._replace_string(replacement)
             else:
                 self._remove_string(opposite_color_string)
 
@@ -128,7 +128,7 @@ class Board():
     def is_on_grid(self,point):
         return (1 <= point.row <= self.num_rows) and (1 <= point.col <= self.num_cols)
 
-    def get(self, point)-> Optional[Player]: # Use typing.Optional to check the return value. It should be a Player object, but None is ok.
+    def get(self, point) -> Optional[Player]: # Use typing.Optional to check the return value. It should be a Player object, but None is ok.
         """
         Check the stone color of the given point.
 
@@ -155,14 +155,19 @@ class Board():
 
     def _remove_string(self, string):
         for point in string.stones:
+            gostring_visited = set() # User set type to check if the new item is the same with the existed
             for neighbor in point.neighbors():
                 neighbor_string = self._grid.get(neighbor)
                 if neighbor_string is None:
-                    continue
-                if neighbor_string is not string:
-                    self._replace_string(neighbor_string.without_liberty(point))
-            self._grid[point] = None
+                    pass
+                else:
+                    gostring_visited.add(neighbor_string)
+            
+            while gostring_visited:
+                current_neighbor_string = gostring_visited.pop()
+                self._replace_string(current_neighbor_string.without_liberty(point))
 
+            self._grid[point] = None
             self.__hash ^= zobrist_hashing_content.HASH_CODE[point, string.color]
 
     def zobrist_hash(self):
