@@ -1,5 +1,5 @@
 import copy
-from gotypes import Player, Point
+from .gotypes import Player, Point
 
 '''
 We following American Go Association(AGA)'s notation. At each round, a player should conduct a 'move'. A 'move' can be the following three actions:

@@ -1,7 +1,7 @@
 from collections import deque
 
-from DL_Go.goboard_use import Board
-from DL_Go.gotypes import *
+from goboard_use import Board
+from gotypes import *
 from typing import List, Tuple, Set
 from math import sqrt
 

@@ -1,4 +1,6 @@
-
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from gotypes import Point
 
 def is_point_an_eye(board, point, color):

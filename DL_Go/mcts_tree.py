@@ -1,5 +1,5 @@
 import goboard_use
-from DL_Go.zobrist_hashing_generator import state
+from zobrist_hashing_generator import state
 
 
 class Node:

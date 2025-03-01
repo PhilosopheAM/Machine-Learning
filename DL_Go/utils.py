@@ -6,8 +6,8 @@ lower left corner would be A1, and the topright corner T19. Note that by convent
 the letter I is omitted to avoid confusion with 1.
 """
 
-import DL_Go.gotypes as gotypes
-from DL_Go.terri_count import *
+import gotypes as gotypes
+from terri_count import *
 
 COLS = 'A B C D E F G H J K L M N O P Q R S T' # No 'I' since it might get confused like '1'
 COLS_NO_SEP = 'ABCDEFGHJKLMNOPQRST'

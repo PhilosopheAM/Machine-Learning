@@ -1,6 +1,6 @@
 import copy
-from DL_Go.gotypes import Player, Point
-from DL_Go import zobrist_hashing_content
+from gotypes import Player, Point
+import zobrist_hashing_content
 from typing import Optional
 from typing import List, Tuple
 
@@ -92,20 +92,28 @@ class Board():
         adjacent_same_color = []
         adjacent_opposite_color = []
         liberties = []
-        for neighbor_stone in point.neighbors():
+        print('%s player places stone in (%d, %d)'%(player, point.row, point.col))
+        valid_neighbors = point.neighbor_with_bound_constraint(self.size())
+        for i in valid_neighbors:
+            print('Neighbor: (%d, %d)\n'%(i.get()[0], i.get()[1]))
+        for neighbor_stone in valid_neighbors:
             if not self.is_on_grid(neighbor_stone):
                 continue # We use keyword 'continue' to escape from this round of iteration. 
-            
+
             # Only those neighbors with reachable coordinates will go into following steps
             neighbor_string = self._grid.get(neighbor_stone)
             if neighbor_string is None: # Empty, not have been captured
                 liberties.append(neighbor_stone)
+                print('(%d, %d) is empty.\n'%(neighbor_stone.row, neighbor_stone.col))
             elif neighbor_string.color == player:
                 if neighbor_string not in adjacent_same_color:
                     adjacent_same_color.append(neighbor_string)
+                    print('(%d, %d) is {player}.\n'%( neighbor_stone.row, neighbor_stone.col))
             else: # Here remains the only condition, the neighbor_string is not the same color as the player. We still need to check if the neighbor_string has already included in adjacent_opposite_color.
                 if neighbor_string not in adjacent_opposite_color:
                     adjacent_opposite_color.append(neighbor_string) 
+                    print('(%d, %d) %s.\n'%(neighbor_stone.row, neighbor_stone.col, player.other()))
+
         
         new_string = GoString(player, [point], liberties)
         # Assemble the given GoString type instance with each of the same color adjacent (unique) GoString type

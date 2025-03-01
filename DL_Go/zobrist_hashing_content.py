@@ -1,4 +1,4 @@
-from DL_Go.gotypes import Player, Point
+from gotypes import Player, Point
 
 __all__ = ['HASH_CODE', 'EMPTY_BOARD']
 
