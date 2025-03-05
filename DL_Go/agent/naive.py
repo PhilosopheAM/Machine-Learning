@@ -3,7 +3,7 @@ from .base import Agent
 from .helpers import is_point_an_eye
 import os
 import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from goboard_use import Move
 from gotypes import Point
 
@@ -21,6 +21,3 @@ class RandomBot(Agent):
             return Move.pass_turn()
 
         return Move.play(random.choice(candidates))
-    
-if __name__ == '__main__':
-    a = RandomBot()

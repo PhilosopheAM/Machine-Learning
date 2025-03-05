@@ -85,10 +85,36 @@ class Board():
         :return: A list with two integers representing the size of the board, i.e. the row and column.
         """
         return [self.num_rows, self.num_cols]
-
-    def place_stone(self, player:Player, point:Point):
+    def valid_play_check(self, player:Player, point:Point) -> bool:
+        """
+        Use this method to check if a play operation is valid or not. 
+        Args:
+            player: A Player object, who plays the next round.
+            point: Where to place the stone.
+        Returns:
+            bool: If valid -> true, vice versa.
+        """
         assert self.is_on_grid(point) # Make sure the coordinate given is usable
         assert self._grid.get(point) is None # Make sure there is no stone in the place of the given coordinate of point
+        valid_neighbors = point.neighbor_with_bound_constraint(self.size())
+
+        # Easy check first, to save runtime cost
+        for check_n in valid_neighbors:
+            if self.get_go_string() is None: return True
+        
+        # Further check, need more memory space
+        valid_or_not = True
+        temporary_board = copy.deepcopy(self)
+        temporary_board.place_stone(player, point)
+        tempo_string = temporary_board.get_go_string(point)
+        if len(tempo_string.liberties):
+            pass
+        else:
+            valid_or_not = False
+        return valid_or_not
+    def place_stone(self, player:Player, point:Point):
+        # assert self.is_on_grid(point) # Make sure the coordinate given is usable
+        # assert self._grid.get(point) is None # Make sure there is no stone in the place of the given coordinate of point
         adjacent_same_color = []
         adjacent_opposite_color = []
         liberties = []
@@ -97,8 +123,8 @@ class Board():
         for i in valid_neighbors:
             print('Neighbor: (%d, %d)\n'%(i.get()[0], i.get()[1]))
         for neighbor_stone in valid_neighbors:
-            if not self.is_on_grid(neighbor_stone):
-                continue # We use keyword 'continue' to escape from this round of iteration. 
+            # if not self.is_on_grid(neighbor_stone):
+            #     continue # We use keyword 'continue' to escape from this round of iteration. 
 
             # Only those neighbors with reachable coordinates will go into following steps
             neighbor_string = self._grid.get(neighbor_stone)
@@ -108,11 +134,11 @@ class Board():
             elif neighbor_string.color == player:
                 if neighbor_string not in adjacent_same_color:
                     adjacent_same_color.append(neighbor_string)
-                    print('(%d, %d) is {player}.\n'%( neighbor_stone.row, neighbor_stone.col))
+                    print('(%d, %d) is %s.\n'%( neighbor_stone.row, neighbor_stone.col, player))
             else: # Here remains the only condition, the neighbor_string is not the same color as the player. We still need to check if the neighbor_string has already included in adjacent_opposite_color.
                 if neighbor_string not in adjacent_opposite_color:
                     adjacent_opposite_color.append(neighbor_string) 
-                    print('(%d, %d) %s.\n'%(neighbor_stone.row, neighbor_stone.col, player.other()))
+                    print('(%d, %d) is %s.\n'%(neighbor_stone.row, neighbor_stone.col, player.other))
 
         
         new_string = GoString(player, [point], liberties)
@@ -127,7 +153,8 @@ class Board():
         # Reduction of liberty of the adjacent opposite-color strings. (Remind uself of the difference of the adjacent stones and the adjacent strings)
         for opposite_color_string in adjacent_opposite_color:
             replacement = opposite_color_string.without_liberty(point)
-            if replacement.num_liberties: # The boolean function identifies whether 'replacement.num_liberties' is 0. If not, return True.
+            print(len(replacement.liberties))
+            if replacement.num_liberties(): # The boolean function identifies whether 'replacement.num_liberties' is 0. If not, return True.
                 self._replace_string(replacement)
             else:
                 self._remove_string(opposite_color_string)
@@ -161,20 +188,23 @@ class Board():
         for point in new_string.stones:
             self._grid[point] = new_string
 
-    def _remove_string(self, string):
+    def _remove_string(self, string:GoString):
         for point in string.stones:
-            gostring_visited = set() # User set type to check if the new item is the same with the existed
-            for neighbor in point.neighbors():
-                neighbor_string = self._grid.get(neighbor)
-                if neighbor_string is None:
-                    pass
-                else:
-                    gostring_visited.add(neighbor_string)
-            
+            gostring_visited = [] # User set type to check if the new item is the same with the existed
+            # for neighbor in point.neighbors():
+            #     neighbor_string = self._grid.get(neighbor)
+            #     if neighbor_string is None:
+            #         pass
+            #     else:
+            #         # gostring_visited.add(neighbor_string)
+            #         gostring_visited.append(neighbor_string)
+            for neighbor in point.neighbor_with_bound_constraint(self.size()):
+                n_string = self._grid.get(neighbor)
+                if n_string not in gostring_visited and n_string is not None:
+                    gostring_visited.append(n_string)
             while gostring_visited:
                 current_neighbor_string = gostring_visited.pop()
-                self._replace_string(current_neighbor_string.without_liberty(point))
-
+                self._replace_string(current_neighbor_string.with_liberty(point))
             self._grid[point] = None
             self.__hash ^= zobrist_hashing_content.HASH_CODE[point, string.color]
 
