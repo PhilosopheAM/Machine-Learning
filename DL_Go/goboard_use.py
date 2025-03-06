@@ -85,40 +85,14 @@ class Board():
         :return: A list with two integers representing the size of the board, i.e. the row and column.
         """
         return [self.num_rows, self.num_cols]
-    def valid_play_check(self, player:Player, point:Point) -> bool:
-        """
-        Use this method to check if a play operation is valid or not. 
-        Args:
-            player: A Player object, who plays the next round.
-            point: Where to place the stone.
-        Returns:
-            bool: If valid -> true, vice versa.
-        """
-        assert self.is_on_grid(point) # Make sure the coordinate given is usable
-        assert self._grid.get(point) is None # Make sure there is no stone in the place of the given coordinate of point
-        valid_neighbors = point.neighbor_with_bound_constraint(self.size())
-
-        # Easy check first, to save runtime cost
-        for check_n in valid_neighbors:
-            if self.get_go_string() is None: return True
-        
-        # Further check, need more memory space
-        valid_or_not = True
-        temporary_board = copy.deepcopy(self)
-        temporary_board.place_stone(player, point)
-        tempo_string = temporary_board.get_go_string(point)
-        if len(tempo_string.liberties):
-            pass
-        else:
-            valid_or_not = False
-        return valid_or_not
+    
     def place_stone(self, player:Player, point:Point):
         # assert self.is_on_grid(point) # Make sure the coordinate given is usable
         # assert self._grid.get(point) is None # Make sure there is no stone in the place of the given coordinate of point
         adjacent_same_color = []
         adjacent_opposite_color = []
         liberties = []
-        print('%s player places stone in (%d, %d)'%(player, point.row, point.col))
+        # print('%s player places stone in (%d, %d)'%(player, point.row, point.col))
         valid_neighbors = point.neighbor_with_bound_constraint(self.size())
         for i in valid_neighbors:
             print('Neighbor: (%d, %d)\n'%(i.get()[0], i.get()[1]))
@@ -130,15 +104,15 @@ class Board():
             neighbor_string = self._grid.get(neighbor_stone)
             if neighbor_string is None: # Empty, not have been captured
                 liberties.append(neighbor_stone)
-                print('(%d, %d) is empty.\n'%(neighbor_stone.row, neighbor_stone.col))
+                # print('(%d, %d) is empty.\n'%(neighbor_stone.row, neighbor_stone.col))
             elif neighbor_string.color == player:
                 if neighbor_string not in adjacent_same_color:
                     adjacent_same_color.append(neighbor_string)
-                    print('(%d, %d) is %s.\n'%( neighbor_stone.row, neighbor_stone.col, player))
+                    # print('(%d, %d) is %s.\n'%( neighbor_stone.row, neighbor_stone.col, player))
             else: # Here remains the only condition, the neighbor_string is not the same color as the player. We still need to check if the neighbor_string has already included in adjacent_opposite_color.
                 if neighbor_string not in adjacent_opposite_color:
                     adjacent_opposite_color.append(neighbor_string) 
-                    print('(%d, %d) is %s.\n'%(neighbor_stone.row, neighbor_stone.col, player.other))
+                    # print('(%d, %d) is %s.\n'%(neighbor_stone.row, neighbor_stone.col, player.other))
 
         
         new_string = GoString(player, [point], liberties)
@@ -153,7 +127,7 @@ class Board():
         # Reduction of liberty of the adjacent opposite-color strings. (Remind uself of the difference of the adjacent stones and the adjacent strings)
         for opposite_color_string in adjacent_opposite_color:
             replacement = opposite_color_string.without_liberty(point)
-            print(len(replacement.liberties))
+            # print(len(replacement.liberties))
             if replacement.num_liberties(): # The boolean function identifies whether 'replacement.num_liberties' is 0. If not, return True.
                 self._replace_string(replacement)
             else:
@@ -189,7 +163,8 @@ class Board():
             self._grid[point] = new_string
 
     def _remove_string(self, string:GoString):
-        for point in string.stones:
+        string_stones_set = string.stones
+        for point in string_stones_set:
             gostring_visited = [] # User set type to check if the new item is the same with the existed
             # for neighbor in point.neighbors():
             #     neighbor_string = self._grid.get(neighbor)
@@ -199,8 +174,10 @@ class Board():
             #         # gostring_visited.add(neighbor_string)
             #         gostring_visited.append(neighbor_string)
             for neighbor in point.neighbor_with_bound_constraint(self.size()):
+                if neighbor in string_stones_set: # Reduce cost. Another way is to see whether they have the same color.
+                    continue
                 n_string = self._grid.get(neighbor)
-                if n_string not in gostring_visited and n_string is not None:
+                if n_string is not None and n_string not in gostring_visited:
                     gostring_visited.append(n_string)
             while gostring_visited:
                 current_neighbor_string = gostring_visited.pop()
@@ -227,9 +204,23 @@ class GameState():
             self.previous_states = frozenset(previous_gamestate.previous_states | {(previous_gamestate.next_player , previous_gamestate.board.zobrist_hash())})
 
     def apply_move(self,move):
+        """
+        Place a stone to the board. The color of the stone(who plays this round) depends on the game state. With no safety/validity check.
+        """
         if move.is_play:
             board_after_move = copy.deepcopy(self.board)
             board_after_move.place_stone(self.next_player,move.point)
+        else:
+            board_after_move = self.board
+        return GameState(board_after_move,self.next_player.other,self,move)
+    
+    def apply_move_designated_player(self, move:Move, player:Player):
+        """
+        Place a stone to the board. The color of the stone(who plays this round) depends on the parameter. With no safety/validity check.
+        """
+        if move.is_play:
+            board_after_move = copy.deepcopy(self.board)
+            board_after_move.place_stone(player,move.point)
         else:
             board_after_move = self.board
         return GameState(board_after_move,self.next_player.other,self,move)
@@ -252,29 +243,7 @@ class GameState():
         if former_second_move is None:
             return False
         return self.last_move.is_pass and former_second_move.is_pass
-
-    # Next we will check if a move leads to self-capture
-    def is_move_self_capture(self, player, move):
-        next_board = copy.deepcopy(self.board)
-        next_board.place_stone(player,move.point)
-        target_string_in_next_board = next_board.get_go_string(move.point)
-        return target_string_in_next_board.num_liberties == 0
-
-    @property
-    def situation(self):
-        return (self.next_player, self.board)
     
-    # The better implementation of ko rule identification
-    def does_move_violate_ko(self, player,move):
-        if not move.is_play:
-            return False
-        next_board = copy.deepcopy(self.board)
-        next_board.place_stone(player,move.point)
-        next_situation = (player.other, next_board.zobrist_hash())
-        return next_situation in self.previous_states
-        # If 'next_situation' tuple already exists in 'self.previous_states' set, it will return 1 (yes), which indicates that the ko rule is violated.
-
-
     def is_valid_move(self, move):
         if self.is_over():
             return False
@@ -285,10 +254,62 @@ class GameState():
         # 1) the point given is legal
         # 2) no self-capture
         # 3) no violating ko rule
-        play_move_checking = (self.board.get(move.point) is None) and \
-                             (not self.is_move_self_capture(self.next_player,move)) and \
-                             (not self.does_move_violate_ko(self.next_player, move))
-        return play_move_checking
+        target_point = move.point
+        is_valid = self._play_check_valid(self.next_player, target_point)
+        return is_valid
+
+    def _play_check_valid(self, player:Player, point:Point) -> bool:
+        """
+        Use this method to check if a play operation is valid or not.\n
+        It includes three main test. \n
+        1. Is target point in board? \n
+        2. Self-capture test\n
+        3. KO rule test
+        Args:
+            player: A Player object, who plays the next round.
+            point: Where to place the stone.
+        Returns:
+            bool: If valid -> true, vice versa.
+        """
+        valid_or_not = True
+
+        # test 1, on board
+        if not (self.board.is_on_grid(point) and (self.board._grid.get(point) is None)):
+            valid_or_not = False
+            return valid_or_not
+        else: 
+            pass
+
+        # We have two steps for test 2 - self capture. If the EZ test is passed, the play won't disobey ko rule.
+        # test 2 and test 3, no self-capture and ko violating, need the same after-play board.
+        # Easy check first, to save runtime cost. Test 2 - first subtest
+        valid_neighbors = point.neighbor_with_bound_constraint(self.board.size())
+        for check_n in valid_neighbors:
+            if self.board.get_go_string(check_n) is None: 
+                return valid_or_not
+            
+        # Further check, need more memory space
+        temporary_board = copy.deepcopy(self.board)
+        temporary_board.place_stone(player, point)
+        # Test 2 - second subtest
+        tempo_string = temporary_board.get_go_string(point)
+        if len(tempo_string.liberties):
+            pass
+        else:
+            valid_or_not = False
+            return valid_or_not
+        
+        # Test 3 - ko rule
+        next_situation = (player.other, temporary_board.zobrist_hash())
+        if next_situation in self.previous_states:
+            valid_or_not = False
+        else: 
+            pass
+        return valid_or_not
+
+    @property
+    def situation(self):
+        return (self.next_player, self.board)
 
     def get_valid_moves(self):
         valid_moves_list = []

@@ -4,6 +4,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from gotypes import Point
 
 def is_point_an_eye(board, point, color):
+    """
+    Warning: Player should never place a stone on a real eye since this step is useless, compared to a peseudo eye.
+    """
     if board.get(point) is not None:
         return False
     for neighbor in point.neighbors():

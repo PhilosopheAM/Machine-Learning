@@ -4,11 +4,11 @@ from .helpers import is_point_an_eye
 import os
 import sys
 # sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from goboard_use import Move
+from goboard_use import Move, GameState
 from gotypes import Point
 
 class RandomBot(Agent):
-    def select_move(self, game_state) -> Move:
+    def select_move(self, game_state:GameState) -> Move:
         # Random choice, valid moves. Very naive bot plays like a child.
         candidates = []
         for rv in range(1, game_state.board.num_rows + 1):
