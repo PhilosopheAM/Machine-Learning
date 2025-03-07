@@ -3,6 +3,8 @@ import goboard_use
 import gotypes
 from utils import print_board, print_move, print_accurate_condition
 import time
+from terri_count import ComplexTerri as CT
+from terri_count import SimpleTerri as ST
 
 def test_remove_function():
     # Use a small board to test. 5-5 BOARD.
@@ -13,9 +15,25 @@ def test_remove_function():
     while not game.is_over():
         mv = bot.select_move(game)
         game = place_and_print(game, move = mv )
-        string = game.board.get_go_string(mv.point)
-        print('Target string has %d liberty.'%(len(string.liberties)))
+        # string = game.board.get_go_string(mv.point)
+        # print('Target string has %d liberty.'%(len(string.liberties)))
+        terri = ST.go_stones_number(gamestate=game)
+        terri_c = CT.accurate_terri_number(gamestate=game)
+        terri_e = CT.estimated_terri_number(gamestate=game)
         print()
+        print("------------------Simple Terri Count Begin----------------")
+        print(f"Black captures {terri[0]}.\nWhite captures {terri[1]}.\nRemains neutral {terri[2]}. ")
+        print("------------------Simple Terri Count End----------------")
+        print()
+        print("------------------Complex Terri Count Begin----------------")
+        print(f"Black captures {terri_c[0]}.\nWhite captures {terri_c[1]}.\nRemains neutral {terri_c[2]}. ")
+        print("------------------Complex Terri Count End----------------")
+        print()
+        print("------------------Estimated Terri Count Begin----------------")
+        print(f"Black captures {terri_e[0]}.\nWhite captures {terri_e[1]}.\nRemains neutral {terri_e[2]}. ")
+        print("------------------Estimated Terri Count End----------------")
+
+        # time.sleep(1)
 
     # game = place_and_print(game,(1,1))
     # game = place_and_print(game,(1,2))
@@ -74,7 +92,7 @@ def place_and_print(game: goboard_use.GameState, point: tuple = None, move: gobo
 
     print(chr(27) + "[2J")
     # clear_and_print(game)
-    print_board(game.board)
+    # print_board(game.board)
     print_move(player, move)
     game = game.apply_move_designated_player(move,player)
     print('-----------------After Move----------------\n')

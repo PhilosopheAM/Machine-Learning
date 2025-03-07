@@ -94,8 +94,13 @@ class Board():
         liberties = []
         # print('%s player places stone in (%d, %d)'%(player, point.row, point.col))
         valid_neighbors = point.neighbor_with_bound_constraint(self.size())
+
+        '''
+        # Only be used in test
         for i in valid_neighbors:
             print('Neighbor: (%d, %d)\n'%(i.get()[0], i.get()[1]))
+        '''
+        
         for neighbor_stone in valid_neighbors:
             # if not self.is_on_grid(neighbor_stone):
             #     continue # We use keyword 'continue' to escape from this round of iteration. 
@@ -203,7 +208,7 @@ class GameState():
         else:
             self.previous_states = frozenset(previous_gamestate.previous_states | {(previous_gamestate.next_player , previous_gamestate.board.zobrist_hash())})
 
-    def apply_move(self,move):
+    def apply_move(self,move:Move):
         """
         Place a stone to the board. The color of the stone(who plays this round) depends on the game state. With no safety/validity check.
         """
@@ -244,19 +249,6 @@ class GameState():
             return False
         return self.last_move.is_pass and former_second_move.is_pass
     
-    def is_valid_move(self, move):
-        if self.is_over():
-            return False
-        if move.is_pass or move.is_resign:
-            return True
-        
-        # When checking a 'Play' move, you need to make sure that:
-        # 1) the point given is legal
-        # 2) no self-capture
-        # 3) no violating ko rule
-        target_point = move.point
-        is_valid = self._play_check_valid(self.next_player, target_point)
-        return is_valid
 
     def _play_check_valid(self, player:Player, point:Point) -> bool:
         """
@@ -311,15 +303,30 @@ class GameState():
     def situation(self):
         return (self.next_player, self.board)
 
-    def get_valid_moves(self):
-        valid_moves_list = []
+    def get_all_valid_play_moves(self)->set:
+        valid_moves_list = set()
         for column in range(1, self.board.num_rows + 1):
             for row in range(1, self.board.num_columns + 1):
                 temp_move = Move.play(Point(row, column))
                 if self.is_valid_move(temp_move):
-                    valid_moves_list.append(temp_move)
+                    valid_moves_list.add(temp_move)
         
         if len(valid_moves_list) == 0:
             return None
         else:
             return valid_moves_list
+        
+    
+    def is_valid_move(self, move):
+        if self.is_over():
+            return False
+        if move.is_pass or move.is_resign:
+            return True
+        
+        # When checking a 'Play' move, you need to make sure that:
+        # 1) the point given is legal
+        # 2) no self-capture
+        # 3) no violating ko rule
+        target_point = move.point
+        is_valid = self._play_check_valid(self.next_player, target_point)
+        return is_valid
