@@ -1,6 +1,8 @@
 import random
-from gotypes import Player, Point
 import sys
+
+from gotypes import Player, Point
+
 
 def to_python(player_state):
     if player_state is None:

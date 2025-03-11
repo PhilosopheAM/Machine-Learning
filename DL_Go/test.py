@@ -1,8 +1,8 @@
-from agent import naive
 import goboard_use
 import gotypes
-from utils import print_board, print_move, print_accurate_condition
-import time
+from agent import naive
+from utils import print_board, print_move
+
 from terri_count import ComplexTerri as CT
 from terri_count import SimpleTerri as ST
 
@@ -102,6 +102,17 @@ def place_and_print(game: goboard_use.GameState, point: tuple = None, move: gobo
 def clear_and_print(game: goboard_use.GameState):
     print(chr(27) + "[2J")
     print_board(game.board)
+
+def three_board_test():
+    game = goboard_use.GameState.new_game(3)
+    black = gotypes.Player.black
+    white = gotypes.Player.white
+    board = game.board
+
+    # Step 1, black (2,2)
+    point22 = gotypes.Point(2,2)
+    move = goboard_use.Move.play(point22)
+    game.apply_move()
 
 if __name__ == '__main__':
     test_remove_function()

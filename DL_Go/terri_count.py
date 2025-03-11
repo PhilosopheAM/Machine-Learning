@@ -1,9 +1,10 @@
 from collections import deque
+from math import sqrt
+from typing import List, Tuple, Set
 
 from goboard_use import Board, GameState
 from gotypes import *
-from typing import List, Tuple, Set
-from math import sqrt
+
 
 class SimpleTerri:
     @staticmethod
@@ -35,6 +36,15 @@ class SimpleTerri:
         return [black_stones_number, white_stones_number, neutral_number]
 
 class ComplexTerri:
+
+    class InfluenceInfoPackage:
+        def __init__(self, influence_distance:int = 5, decay_constant:float = 0.6, multiply_constant:float = 1, default_score:float = 0.2, classify_line = 0.8):
+            self.influence_distance = influence_distance
+            self.decay_constant = decay_constant
+            self.multiply_constant = multiply_constant
+            self.default_score = default_score
+            self.classify_line = classify_line
+
     @staticmethod
     def accurate_terri_number(board:Board = None, gamestate: GameState = None) -> List[int]:
         """
@@ -139,11 +149,12 @@ class ComplexTerri:
         return points_terri_result
     
     @staticmethod
-    def estimated_terri_number(board:Board = None, gamestate: GameState = None) -> List[Set]:
+    def estimated_terri_number(board:Board = None, gamestate: GameState = None, iip: InfluenceInfoPackage = InfluenceInfoPackage()) -> List[Set]:
         """
         Return the accurate value of land captured and neutral land remains with estimation. It does not include liberty check, i.e. you should make sure GoString is always alive when checking land captured.
         :param board: The parameter is a board object. It is the current go board that needs to be checked.
         :param gamestate: The parameter is a Gamestate object. Default set as None. If board param is not given, function will fetch the board attribute from gamestate and set it as local param board.
+        :param iip: Including the information about influential model. When is none, use default InfluenceInfoPackage setting.
         :return: Always returns a list[3] of int. The first and second indicates how many territories black and white player has respectively captured. The third int value is how many neutral land remains.
         """
         assert board is not None or gamestate is not None,"Lack of neccesary board info!"
@@ -151,18 +162,19 @@ class ComplexTerri:
             board = gamestate.board
         else:
             pass
-        black_set, white_set, neutral_set = ComplexTerri.estimated_terri_set(board)
+        black_set, white_set, neutral_set = ComplexTerri.estimated_terri_set(board, iip=iip)
         return [len(black_set), len(white_set), len(neutral_set)]
 
     @staticmethod
-    def estimated_terri_set(board:Board = None, gamestate: GameState = None) -> Tuple[set[Point]]:
+    def estimated_terri_set(board:Board = None, gamestate: GameState = None, iip:InfluenceInfoPackage = None) -> Tuple[set[Point]]:
         """
         Return the estimated value of land captured and neutral land remains. It does not include liberty check, i.e. you should make sure GoString is always alive when checking land captured.
         :param board: The parameter is a board object. It is the current go board that needs to be checked.
         :param gamestate: The parameter is a Gamestate object. Default set as None. If board param is not given, function will fetch the board attribute from gamestate and set it as local param board.
+        :param iip: Including the information about influential model. When is none, use default InfluenceInfoPackage setting.
         :return: Always returns a list containing three sets. Sets contain the points captured(or seems to have a great influence on) by black players, white players, and remained neutral respectively.
         """
-        assert board is not None or gamestate is not None,"Lack of neccesary board info!"
+        assert board is not None or gamestate is not None,"Lack of necessary board info!"
         if gamestate is not None:
             board = gamestate.board
         else:
@@ -171,15 +183,27 @@ class ComplexTerri:
         black_set = accurate_set_list[0]  # Include territory and go
         white_set = accurate_set_list[1]  # Include territory and go
         neutral_set = accurate_set_list[2] # From neutral set, estimate potential territory by influence model
+
+        # assert iip is not None and isinstance(iip, ComplexTerri.InfluenceInfoPackage),"Influence info package invalid! You'd better call this function through estimated_terri_number()!"
+        # Influence model default parameters
+        # influence_distance: int = iip.influence_distance
+        # decay_constant:float = iip.decay_constant
+        # multiply_constant:float = iip.multiply_constant
+        # default_score:float = iip.default_score
+        if iip is None:
+            print("You'd better call this function through estimated_terri_number()!\n")
+            print("We will use default InfluenceInfoPackage setting.")
+            iip = ComplexTerri.InfluenceInfoPackage()
+        classify_line:float = iip.classify_line
         
         # Check if a candidate point satisfies the condition.
         for candidate_point in neutral_set.copy(): # Use shallow copy to avoid set runtime error: Set changed during iteration
-            current_score = ComplexTerri.__influence_weighting_calculator(candidate_point, board)
+            current_score = ComplexTerri.__influence_weighting_calculator(candidate_point, board, iip)
             both_score_total = current_score[0] + current_score[1]
-            if current_score[0]/both_score_total > 0.8:
+            if current_score[0]/both_score_total > classify_line:
                 black_set.add(candidate_point)
                 neutral_set.discard(candidate_point)
-            elif current_score[1]/both_score_total > 0.8:
+            elif current_score[1]/both_score_total > classify_line:
                 white_set.add(candidate_point)
                 neutral_set.discard(candidate_point)
             else:
@@ -200,6 +224,7 @@ class ComplexTerri:
         region = set()
         border = set()
 
+
         while queue:
             current = queue.popleft()
             if current in visited:
@@ -219,23 +244,22 @@ class ComplexTerri:
         return region, border
 
     @staticmethod
-    def __influence_weighting_calculator(target_point:Point, board:Board, influence_distance:int = 5, decay_constant:float = 0.6, multiply_constant:float = 1, default_score:float = 0.2) -> tuple[float, float]:
+    def __influence_weighting_calculator(target_point:Point, board:Board, iip: InfluenceInfoPackage) -> tuple[float, float]:
         """
         Use recursive method to get nearby points. With Euclidean distance set as exponential parameter, we design an exponential decay model to sum up the total effect comes from nearby points on a point.
         :param target_point: The point to be checked.
         :param board: The parameter is a board object. It is the current go board that needs to be checked.
-        :param influence_distance: The range of points involve in affecting the score of the point. Defaults to 5.
-        :param decay_constant: The decay constant used in normal exponential decay formula. Defaults to 1.
-        :param multiply_constant: The constant multiplier used in normal exponential decay formula. Defaults to 1.
-        :param default_score: The default score used to avoid 0 as the final score, may cause some problems. Defaults to 0.2.
         :return: Always returns a tuple including two floats. The first one is how much influence black stones give to this point. The second is how much influence white stones give to this point.
         """
-        assert isinstance(target_point, Point) and isinstance(board, Board) and isinstance(influence_distance, int) and influence_distance > 0, "Parameter invalid!"
-        assert influence_distance + 1 <= min(board.size()), "Board is too small for a too big neighbor range."
-        # recursion_steps = influence_distance
-        decay_constant = decay_constant
-        black_score = default_score
-        white_score = default_score # default score is 0.1
+
+        assert (isinstance(target_point, Point) and isinstance(board, Board)), "Point or Board invalid!"
+        assert iip is not None and isinstance(iip, ComplexTerri.InfluenceInfoPackage), "Influence info package missed or invalid!"
+        # Influence model default parameters
+        influence_distance: int = iip.influence_distance
+        decay_constant:float = iip.decay_constant
+        multiply_constant:float = iip.multiply_constant
+        black_score = iip.default_score
+        white_score = iip.default_score # default score is 0.1
         queue = deque() # Initialization
         queue.append(target_point) # Initialization
         # queue.append(target_point)
@@ -264,3 +288,4 @@ class ComplexTerri:
                 else:
                     pass
         return black_score, white_score
+

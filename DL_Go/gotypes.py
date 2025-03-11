@@ -1,6 +1,7 @@
-from enum import Enum
 from collections import namedtuple
+from enum import Enum
 from typing import List, Tuple
+
 
 class Player(Enum):
     black = 1
