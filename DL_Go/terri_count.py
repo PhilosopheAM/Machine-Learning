@@ -157,7 +157,7 @@ class ComplexTerri:
         :param iip: Including the information about influential model. When is none, use default InfluenceInfoPackage setting.
         :return: Always returns a list[3] of int. The first and second indicates how many territories black and white player has respectively captured. The third int value is how many neutral land remains.
         """
-        assert board is not None or gamestate is not None,"Lack of neccesary board info!"
+        assert board is not None or gamestate is not None,"Lack of necessary board info!"
         if gamestate is not None:
             board = gamestate.board
         else:

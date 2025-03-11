@@ -39,7 +39,11 @@ class MCTS:
     Implementation of the MCTS algorithm.
     """
     class MCTS_Strategy:
-        def __init__(self, running_cons:int = 5000, time_cons:float = 3, iip:ComplexTerri.InfluenceInfoPackage = None):
-            self.running_cons = running_cons
-            self.time_cons = time_cons
-            self.iip = iip
+        def __init__(self, running_cons:int = 5000, time_cons:float = 3, uct_explor:float = 0.1,  iip:ComplexTerri.InfluenceInfoPackage = None):
+            self.running_cons = running_cons # How many times MCTS comes to an end
+            self.time_cons = time_cons # How much time MCTS uses to get one decision
+            self.utc_c = uct_explor # exploration parameter of Upper Confidence Bound formula
+            self.iip = iip if isinstance(iip, ComplexTerri.InfluenceInfoPackage) else ComplexTerri.InfluenceInfoPackage() # If iip param is None, use default setting to build up an instance.
+
+    
+
