@@ -310,12 +310,7 @@ class GameState():
                 temp_move = Move.play(Point(row, column))
                 if self.is_valid_move(temp_move):
                     valid_moves_list.add(temp_move)
-        
-        if len(valid_moves_list) == 0:
-            return None
-        else:
-            return valid_moves_list
-        
+        return valid_moves_list
     
     def is_valid_move(self, move):
         if self.is_over():
