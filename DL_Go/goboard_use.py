@@ -312,6 +312,14 @@ class GameState():
                     valid_moves_list.add(temp_move)
         return valid_moves_list
     
+    def pick_move_random(self) -> Move:
+        import random
+        moves = self.get_all_valid_play_moves()
+        if moves:
+            return moves.pop()
+        else:
+            return None
+    
     def is_valid_move(self, move):
         if self.is_over():
             return False

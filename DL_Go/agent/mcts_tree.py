@@ -6,6 +6,7 @@ from ..gotypes import Point, Player
 from ..terri_count import ComplexTerri, SimpleTerri
 import math
 from collections import namedtuple
+from copy import deepcopy
 
 ''' Too messy. Need to rebuild all.
 class Node:
@@ -218,7 +219,20 @@ class Node4MCTS:
 
         # Additional attributes to asist node expand
         self.available_next_move = self.gamestate.get_all_valid_play_moves()
-        self.moves_in_children = set()
+
+    def expand_child_node(self, move: Move) -> Node4MCTS: # type:ignore
+        """
+        A node method. Get a play move and apply it to the current gamestate to acquire an new node as its child node. Return the child node.
+        """
+        assert isinstance(move, Move) and move.is_play, "Invalid Move object! Plz check!"
+        child_node = Node4MCTS(self.gamestate.apply_move(move))
+        child_node.move = move
+        child_node.parent = self
+        self.children.add(child_node)
+        self.available_next_move.discard(move)
+        
+        return child_node
+
 
 
 class MCTS:
@@ -272,9 +286,9 @@ class MCTS:
         root_node = Node4MCTS(gamestate)
         next_move = None # The return value
         if self.limit.time is not None and isinstance(self.limit.time, float) and self.limit.time > 0: # Priority 0
-            pass
+            next_move = self._simulate_time(root_node)
         elif self.limit.step is not None and isinstance(self.limit.step, int) and self.limit.step > 0: # Priority 1
-            pass
+            next_move = self._simulate_step(root_node)
         else:
             raise ValueError("Invalid time or step value")
         
@@ -283,31 +297,178 @@ class MCTS:
         else:
             raise TypeError("Invalid return, expect a move.")
         
-    def simulate_time(self, rootNode: Node4MCTS) -> Move:
+    def _simulate_time(self, rootNode: Node4MCTS) -> Move:
+        import time
         total_time = self.limit.time
-        pass
 
-    def simulate_step(self, rootNode: Node4MCTS) -> Move:
-        pass
+        # Start time t_start
+        t_start = time.time()
 
-    def simulate_once(self, rootNode: Node4MCTS) -> None:
+        # Simulation process
+        while(t_start - time.time() > 0):
+            self._simulate_once(rootNode)
+
+        return self._select_best_child_move(rootNode)
+
+    def _simulate_step(self, rootNode: Node4MCTS) -> Move:
+        total_step = self.limit.step
+        while(total_step > 0):
+            self._simulate_once(rootNode)
+        
+        return self._select_best_child_move(rootNode)
+
+    def _select_best_child_move(self, rootNode: Node4MCTS) -> Move:
+        assert rootNode.children, "The root node has no children node. Can not pick a child node to give the best play move!"
+        # Choose the most visited node as the best node. If two nodes have the same visited times, check their rewards.
+        best_node = None
+        most_visit = -1
+        for i in rootNode.children:
+            if i.visit > most_visit:
+                best_node = i
+                most_visit = i.visit
+            elif i.visit == most_visit:
+                if i.reward > best_node.reward:
+                    best_node = i
+            else: # < most_visit
+                pass
+        
+        assert best_node is not None, "Check root node!"
+        assert best_node.move is not None, "Check best_node's move!"
+        return best_node.move
+
+    def _simulate_once(self, rootNode: Node4MCTS) -> None:
         resign_enable = self.strategy.auto_resign_enable
+        start_node = self._select_leaf_node(rootNode) # The starting node of the simulation
+        temp_gamestate = deepcopy(start_node.gamestate)
+        
         # To save running time resources, use similiar but little different implementation
+        if resign_enable: # Auto resign check will execute each given steps.
+            check_resign_step_left = self.strategy.check_interval
+            while not temp_gamestate.is_over():
+                move_random = None
 
-        last_node = None # The end of the simulation node
-        leaf_node = None # The parent of the rootNode, should be None. Use to mark the end of the rewarding process
-        if resign_enable:
-            pass
-        else:
-            pass
-    
-    # TODO
-    def select_leaf_node(self, rootNode: Node4MCTS) -> Node4MCTS:
+                # Resign check, every check_interval-steps.
+                if check_resign_step_left <= 0:
+                    check_resign_step_left = self.strategy.check_interval
+                    estimated_terri_list = ComplexTerri.estimated_terri_number(gamestate=temp_gamestate)
+                    better_to_resign = False
+                    match temp_gamestate.next_player:
+                        case Player.black:
+                            better_to_resign = True if estimated_terri_list[1]/estimated_terri_list[0] >= self.resign_divider_line else False
+                        case Player.white:
+                            better_to_resign = True if estimated_terri_list[0]/estimated_terri_list[1] >= self.resign_divider_line else False
+                        case _:
+                            raise Exception("Illegal Player in mcts: get_best_move method!")
+                    # If estimated territory check satisfies certain resign_devider_line, will use accurate territory to check again.
+                    if better_to_resign: 
+                        resign_determine_flag = False
+                        accurate_terri_list = ComplexTerri.accurate_terri_number(gamestate=temp_gamestate)
+                        match temp_gamestate.next_player:
+                            case Player.black:
+                                resign_determine_flag = True if estimated_terri_list[1]/estimated_terri_list[0] >= self.resign_divider_line * 0.8 else False
+                            case Player.white:
+                                resign_determine_flag = True if estimated_terri_list[0]/estimated_terri_list[1] >= self.resign_divider_line * 0.8 else False
+                            case _:
+                                raise Exception("Illegal Player in mcts: get_best_move method!")
+                        if resign_determine_flag:
+                            move_random = Move.resign()
+                
+                if move_random is not None: # i.e. resign move
+                    pass
+                else: # check pass turn and play
+                    move_random = temp_gamestate.pick_move_random() # Play Move
+                    if move_random is None: # pass turn Move
+                        move_random = Move.pass_turn()
+                temp_gamestate = temp_gamestate.apply_move(move_random)
+
+        else: # No auto resign check. The game will keep going until the last stone is placed.
+            while not temp_gamestate.is_over():
+                move_random = temp_gamestate.pick_move_random()
+                if move_random is None:
+                    move_random = Move.pass_turn()
+                temp_gamestate = temp_gamestate.apply_move(move_random)
+
+        # When game is over, i.e. temp_gamestate.is_over() -> True
+        # should update reward and visit to every node in the searching route
+        self._update_reward(start_node, temp_gamestate)
+
+    def _update_reward(self, start_node: Node4MCTS, final_gamestate: GameState) -> None:
+        """
+        Update the reward with _reward_spreading_exponential_decay method.
+        """
+        black_reward, white_reward = self._reward_spreading_exponential_decay(gamestate=final_gamestate)
+        current = start_node
+        while current is not None:
+            current.visit += 1
+            player = current.gamestate.next_player
+            match player:
+                case Player.black:
+                    current.reward += black_reward
+                case Player.white:
+                    current.reward += white_reward
+                case _ :
+                    raise TypeError("Check gamestate's attribute 'next_player'!")
+            current = current.parent
+
+    def _reward_spreading_exponential_decay(self, gamestate: GameState = None, board: Board = None, k:float = 0.184) -> tuple:
+        """
+        Convert terri result into a normalization reward function (0~2). Use exponential decay method.
+        Args:
+            gamestate: The final gamestate. If board param is None, gamestate param should not be None.
+            board: The final goboard. If gamestate is None, board param should not be None.
+            k: decay parameter. Set 0.184 as default. With lager k, the reward would grow intensively.
+        Returns:
+            A tuple with two float values, respectively represents the reward for black and white. [0] for black; [1] for white.
+        """
+        assert gamestate is not None or board is not None, "Do not accept a valid board or gamestate!"
+        if gamestate is not None and isinstance(gamestate, GameState):
+            board = gamestate.board
+        estimate_terri_list = ComplexTerri.estimated_terri_number(board = board)
+        accurate_terri_list = ComplexTerri.accurate_terri_number(board=board)
+        estimate_b_w_difference = estimate_terri_list[0] - estimate_terri_list[1]
+        accurate_b_w_difference = accurate_terri_list[0] - accurate_terri_list[1]
+
+
+        # Design a quadratic function, use this quadratic function to map current board(maybe not been placed fully) to a 'as-if' fully placed board
+        accurate_stone_list = SimpleTerri.go_stones_number(board=board)
+        a = 5.67 * (10**(-5))
+        b = -0.008
+        c = 1
+        x = accurate_stone_list[2] # The remaining neutral lands
+        multiply = a* x**2 + b * x + c
+        
+        black_reward = 0.7*(2 - math.e**(-k*multiply*accurate_b_w_difference)) + 0.3*(2 - math.e**(-k*multiply*estimate_b_w_difference))
+        white_reward = 0.7*(2 - math.e**(k*multiply*accurate_b_w_difference)) + 0.3*(2 - math.e**(k*multiply*estimate_b_w_difference))
+
+        return black_reward,white_reward
+
+        
+
+    def _select_leaf_node(self, rootNode: Node4MCTS) -> Node4MCTS:
         current_node = rootNode # The most suitable node in the current searching tree level
 
-        while(len(current_node.children) > 0):
+        while(len(current_node.children) > 0): # Go search the tree until come to the last level node.
             
-
+            if len(current_node.available_next_move) > 0: # Should pop an available next move to expand children node.
+                child_move = current_node.available_next_move.pop() # pop() must be valid
+                current_node = current_node.expand_child_node(child_move)
+            elif len(current_node.available_next_move) == 0: # Should use UCT formula to select a best node.
+                uct_e = self.strategy.uct_explor
+                best_child_node = None
+                best_uct_score = float('-inf') # Negative infinity
+                for i in current_node.children:
+                    current_score = i.reward/i.visits + uct_e * math.sqrt(math.log(self.visits) / i.visits)
+                    if current_score >= best_uct_score:
+                        best_child_node = i
+                        best_uct_score = current_score
+                if isinstance(best_child_node, Node4MCTS):
+                    current_node = best_child_node
+                else:
+                    raise TypeError("best_child_node can not be None. Check logic error!")
+            else:
+                raise ValueError("Illegal value for node attribute: 'available_next_move'. Plz check it!")
+            
+        # current node has no children node now. It must be a leaf node. 
         return current_node
 
 
@@ -351,10 +512,3 @@ class Strategy4UCT(namedtuple(typename='Strategy4UCT', field_names=['uct_explor'
             if self.auto_resign_divider_line is None or not isinstance(self.auto_resign_divider_line,float) or self.auto_resign_divider_line <= 0 or self.auto_resign_divider_line > 1:
                 return False
             return True
-
-
-class Node:
-    pass
-        
-        
-        
